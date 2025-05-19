@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 import argparse
 import os
@@ -7,8 +6,14 @@ import string
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import List, Tuple
+import nltk
 from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from nltk import pos_tag, word_tokenize
+
 from sklearn.feature_extraction.text import TfidfVectorizer
+
+lemmatizer = WordNetLemmatizer()
 
 import logging
 
@@ -32,7 +37,7 @@ def parse_chat(text: str) -> Tuple[List[str], List[str]]:
 
 
 def tokenize(text: str) -> List[str]:
-    return [w.lower() for w in TOKEN_RE.findall(text) if w.lower() not in STOP_WORDS]
+    return [ lemmatizer.lemmatize(w.lower()) for w in TOKEN_RE.findall(text) if w.lower() not in STOP_WORDS]
 def keyword_stats_simple(user_msgs: List[str], ai_msgs: List[str], k: int = 5) -> List[Tuple[str, int]]:
     all_tokens = []
     for msg in user_msgs + ai_msgs:
@@ -59,7 +64,10 @@ def summarize(path: Path, use_tfidf: bool = False) -> None:
     user_msgs, ai_msgs = parse_chat(text)
 
     total_msg = len(user_msgs) + len(ai_msgs)
-    keywords =keyword_stats_simple(user_msgs, ai_msgs)
+    if use_tfidf:
+        keywords = keyword_stats_tfidf(user_msgs, ai_msgs)
+    else:
+        keywords = keyword_stats_simple(user_msgs, ai_msgs)
 
     topic = keywords[0][0] if keywords else "general"
 
