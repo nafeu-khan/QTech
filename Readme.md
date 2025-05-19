@@ -34,6 +34,8 @@ This script is to summarize chat logs by extracting key information such as the 
    ```python
    import nltk
    nltk.download('stopwords')
+   nltk.download('wordnet')          
+
    ```
 
 ## Usage
