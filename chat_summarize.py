@@ -8,6 +8,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import List, Tuple
 from nltk.corpus import stopwords
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 import logging
 
@@ -38,7 +39,22 @@ def keyword_stats_simple(user_msgs: List[str], ai_msgs: List[str], k: int = 5) -
         all_tokens.extend(tokenize(msg))
     return Counter(all_tokens).most_common(k)
 
-def summarize(path: Path) -> None:
+
+
+def keyword_stats_tfidf(user_msgs: List[str], ai_msgs: List[str], k: int = 5) -> List[Tuple[str, float]]:
+    # print("user msgs:", user_msgs)
+    docs = [" ".join(user_msgs), " ".join(ai_msgs)]  
+    vec = TfidfVectorizer(stop_words='english')
+    tfidf = vec.fit_transform(docs)
+    # print(vec.get_feature_names_out())
+    scores = tfidf.sum(axis=0).A1  
+    vocab = vec.get_feature_names_out()
+    pairs = list(zip(vocab, scores))
+    # print("pairs:", pairs)
+    pairs.sort(key=lambda x: x[1], reverse=True)
+    return pairs[:k]
+
+def summarize(path: Path, use_tfidf: bool = False) -> None:
     text = path.read_text(encoding="utf-8", errors="ignore")
     user_msgs, ai_msgs = parse_chat(text)
 
@@ -67,13 +83,16 @@ def collect_txt_files(path_str: str) -> List[Path]:
 def main() -> None:
     ap = argparse.ArgumentParser(description="summarize chat logs")
     ap.add_argument("path", help="path of .txt file or a folder of .txt files if you have multiple files")
+    ap.add_argument("--tfidf", action="store_true", help="use TF-IDF library")
+
     args = ap.parse_args()
     files = collect_txt_files(args.path)
     if not files:
         logger.info("no .txt files found.")
         return
     for f in files:
-        summarize(f)
+        print(f"Summarizing {f}...")
+        summarize(f, use_tfidf=args.tfidf)
 
 
 if __name__ == "__main__":
